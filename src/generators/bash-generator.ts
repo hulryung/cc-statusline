@@ -19,8 +19,7 @@ export function generateBashStatusline(config: StatuslineConfig): string {
     showCost: config.features.includes('usage'),
     showTokens: config.features.includes('tokens'),
     showBurnRate: config.features.includes('burnrate'),
-    showSession: config.features.includes('session'),
-    showProgressBar: config.theme !== 'minimal' && config.features.includes('session')
+    showSession: config.features.includes('session')
   }
 
   // Build git feature config
@@ -235,14 +234,13 @@ fi
 # Line 2: Context and session time
 line2=""${config.features.includes('context') ? `
 if [ -n "$context_pct" ]; then
-  context_bar=$(progress_bar "$context_remaining_pct" 10)
-  line2="🧠 $(context_color)Context Remaining: \${context_pct} [\${context_bar}]$(rst)"
+  line2="🧠 $(context_color)Context Remaining: \${context_pct}$(rst)"
 fi` : ''}${usageConfig.showSession ? `
 if [ -n "$session_txt" ]; then
   if [ -n "$line2" ]; then
-    line2="$line2  ⌛ $(session_color)\${session_txt}$(rst) $(session_color)[\${session_bar}]$(rst)"
+    line2="$line2  ⌛ $(session_color)\${session_txt}$(rst)"
   else
-    line2="⌛ $(session_color)\${session_txt}$(rst) $(session_color)[\${session_bar}]$(rst)"
+    line2="⌛ $(session_color)\${session_txt}$(rst)"
   fi
 fi` : ''}${config.features.includes('context') ? `
 if [ -z "$line2" ] && [ -z "$context_pct" ]; then

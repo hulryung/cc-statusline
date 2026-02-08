@@ -4,7 +4,6 @@ export interface UsageFeature {
   showTokens: boolean
   showBurnRate: boolean
   showSession: boolean  // This is the only feature requiring ccusage
-  showProgressBar: boolean
 }
 
 export function generateUsageBashCode(config: UsageFeature, colors: boolean): string {
@@ -30,7 +29,7 @@ session_color() { :; }
 `
 
   // Session reset time is the only feature requiring ccusage
-  const needsCcusage = config.showSession || config.showProgressBar
+  const needsCcusage = config.showSession
 
   return `${colorCode}
 # ---- cost and usage extraction ----
@@ -115,10 +114,23 @@ if command -v ccusage >/dev/null 2>&1 && [ "$HAS_JQ" -eq 1 ]; then
         remaining=$(( end_sec - now_sec )); (( remaining<0 )) && remaining=0
         rh=$(( remaining / 3600 )); rm=$(( (remaining % 3600) / 60 ))
         end_hm=$(fmt_time_hm "$end_sec")${config.showSession ? `
-        session_txt="$(printf '%dh %dm until reset at %s (%d%%)' "$rh" "$rm" "$end_hm" "$session_pct")"` : ''}${config.showProgressBar ? `
-        session_bar=$(progress_bar "$session_pct" 10)` : ''}
+        session_txt="$(printf '%dh %dm until reset at %s (%d%%)' "$rh" "$rm" "$end_hm" "$session_pct")"` : ''}
       fi
     fi
+  fi
+fi` : ''}
+${config.showSession ? `
+# Native fallback: show session elapsed time from total_duration_ms when ccusage unavailable
+if [ -z "$session_txt" ] && [ -n "$total_duration_ms" ] && [ "$total_duration_ms" -gt 0 ] 2>/dev/null; then
+  elapsed_sec=$(( total_duration_ms / 1000 ))
+  eh=$(( elapsed_sec / 3600 )); em=$(( (elapsed_sec % 3600) / 60 )); es=$(( elapsed_sec % 60 ))
+  session_pct=0
+  if [ "$eh" -gt 0 ]; then
+    session_txt="$(printf 'Elapsed: %dh %dm %ds' "$eh" "$em" "$es")"
+  elif [ "$em" -gt 0 ]; then
+    session_txt="$(printf 'Elapsed: %dm %ds' "$em" "$es")"
+  else
+    session_txt="$(printf 'Elapsed: %ds' "$es")"
   fi
 fi` : ''}`
 }
@@ -161,8 +173,7 @@ export function generateUsageDisplayCode(config: UsageFeature, colors: boolean, 
     displayCode += `
 # session time
 if [ -n "$session_txt" ]; then
-  printf '  ${sessionEmoji} %s%s%s' "$(session_color)" "$session_txt" "$(rst)"${config.showProgressBar ? `
-  printf '  %s[%s]%s' "$(session_color)" "$session_bar" "$(rst)"` : ''}
+  printf '  ${sessionEmoji} %s%s%s' "$(session_color)" "$session_txt" "$(rst)"
 fi`
   }
 
